@@ -3,8 +3,15 @@ import { EncryptedDiceGameABI } from "../abi/EncryptedDiceGameABI";
 import { getEncryptedDiceGameAddress } from "../contracts/EncryptedDiceGameAddresses";
 import { useWagmiEthers } from "./wagmi/useWagmiEthers";
 import { buildParamsFromAbi, useFHEDecrypt, useFHEEncryption, useFhevm, useInMemoryStorage } from "@fhevm-sdk";
-import { formatEther, parseEther, decodeEventLog } from "viem";
-import { useAccount, usePublicClient, useReadContract, useWaitForTransactionReceipt, useWalletClient, useWriteContract } from "wagmi";
+import { decodeEventLog, formatEther, parseEther } from "viem";
+import {
+  useAccount,
+  usePublicClient,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWalletClient,
+  useWriteContract,
+} from "wagmi";
 
 export type GameRecord = {
   id: number;
@@ -86,7 +93,7 @@ export function useEncryptedDiceGame() {
   const [error, setError] = useState<string | null>(null);
   const [gameHistory, setGameHistory] = useState<GameRecord[]>([]);
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null);
-  
+
   // State for encrypted dice values to decrypt (following FHECounter pattern)
   const [encryptedDiceHandles, setEncryptedDiceHandles] = useState<string[]>([]);
 
@@ -181,7 +188,7 @@ export function useEncryptedDiceGame() {
   // Decrypt hook for dice values (following FHECounter pattern)
   const diceDecryptRequests = useMemo(() => {
     if (!contractAddress || encryptedDiceHandles.length === 0) return [];
-    
+
     return encryptedDiceHandles.map(handle => ({
       handle,
       contractAddress: contractAddress as `0x${string}`,
@@ -205,7 +212,7 @@ export function useEncryptedDiceGame() {
   // Extract decrypted dice values from results (following FHECounter pattern)
   const decryptedDiceValuesFromHook = useMemo(() => {
     if (encryptedDiceHandles.length === 0) return undefined;
-    
+
     const values: number[] = [];
     for (const handle of encryptedDiceHandles) {
       const decrypted = diceDecryptResults[handle];
@@ -213,7 +220,7 @@ export function useEncryptedDiceGame() {
         values.push(Number(decrypted));
       }
     }
-    
+
     if (values.length === encryptedDiceHandles.length) {
       return values;
     }
@@ -373,7 +380,7 @@ export function useEncryptedDiceGame() {
           console.log("⚠️ Using gameCounter fallback, gameId:", gameId);
         }
 
-        // Add to local game history
+        // Only add to local game history AFTER transaction is confirmed
         const newGame: GameRecord = {
           id: gameId,
           diceCount,
@@ -466,7 +473,7 @@ export function useEncryptedDiceGame() {
         for (let i = 0; i < encryptedDiceValues.length; i++) {
           const encryptedValue = encryptedDiceValues[i];
           let handleStr: string;
-          
+
           if (typeof encryptedValue === "bigint") {
             const hexStr = encryptedValue.toString(16);
             handleStr = "0x" + hexStr.padStart(64, "0");
@@ -474,12 +481,12 @@ export function useEncryptedDiceGame() {
             const valueStr = encryptedValue as string;
             handleStr = valueStr.startsWith("0x") ? valueStr : "0x" + valueStr;
           }
-          
+
           handles.push(handleStr);
         }
 
         console.log("📝 Setting up dice decrypt handles:", handles);
-        
+
         // Set handles to trigger decrypt hook (following FHECounter pattern)
         setEncryptedDiceHandles(handles);
 
@@ -523,7 +530,9 @@ export function useEncryptedDiceGame() {
         const stake = game?.stake || 0;
         const payout = won ? stake * 1.95 : 0;
 
-        console.log(`📊 Results - Sum: ${sum}, isEven: ${isSumEven}, predicted: ${predictedEven ? "even" : "odd"}, won: ${won}`);
+        console.log(
+          `📊 Results - Sum: ${sum}, isEven: ${isSumEven}, predicted: ${predictedEven ? "even" : "odd"}, won: ${won}`,
+        );
 
         // Update game history with results
         setGameHistory(prev =>
@@ -536,8 +545,8 @@ export function useEncryptedDiceGame() {
                   payout: payout,
                   isResolved: true,
                 }
-              : g
-          )
+              : g,
+          ),
         );
 
         console.log("✅ Game history updated with results");

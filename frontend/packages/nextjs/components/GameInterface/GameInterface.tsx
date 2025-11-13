@@ -16,6 +16,7 @@ export function GameInterface({ onShowOverlay, onHideOverlay }: GameInterfacePro
   const [diceValues, setDiceValues] = useState<number[]>([1]);
   const [lastResult, setLastResult] = useState<{ win: boolean; payout: number } | null>(null);
   const [prediction, setPrediction] = useState<"even" | "odd">("even");
+  const [animationInterval, setAnimationInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Swap state - moved to TokenSwap component
 
@@ -40,12 +41,46 @@ export function GameInterface({ onShowOverlay, onHideOverlay }: GameInterfacePro
   // Get decrypted balance (provide a default value)
   const balance = decryptBalance() || 0;
   const isContractReady = isContractAvailable;
-  const games = gameHistory || []; // Clear contract errors when component mounts
+  const games = gameHistory || [];
+
+  // Clear contract errors when component mounts
   useEffect(() => {
     if (contractError) {
       clearError();
     }
   }, [contractError, clearError]);
+
+  // Initialize dice values when diceMode changes
+  useEffect(() => {
+    if (!isRolling) {
+      setDiceValues(Array(diceMode).fill(1));
+    }
+  }, [diceMode, isRolling]);
+
+  // Random dice animation when rolling
+  useEffect(() => {
+    if (isRolling) {
+      // Start random animation
+      const interval = setInterval(() => {
+        const newValues = Array(diceMode)
+          .fill(0)
+          .map(() => Math.floor(Math.random() * 6) + 1);
+        setDiceValues(newValues);
+      }, 100); // Update every 100ms for smooth animation
+
+      setAnimationInterval(interval);
+
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    } else {
+      // Stop animation when not rolling
+      if (animationInterval) {
+        clearInterval(animationInterval);
+        setAnimationInterval(null);
+      }
+    }
+  }, [isRolling, diceMode, animationInterval]);
 
   // Show contract errors as toasts
   useEffect(() => {
@@ -95,13 +130,20 @@ export function GameInterface({ onShowOverlay, onHideOverlay }: GameInterfacePro
         // Auto-resolve the game
         await resolveGame(Number(gameId));
 
+        // Stop rolling animation first
+        setIsRolling(false);
+
+        // Brief pause to let animation stop
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         // Refresh data to get latest results
         await refresh();
 
-        // Find the resolved game
+        // Find the resolved game and display final results
         const resolvedGame = games.find((g: any) => g.id === gameId);
-        if (resolvedGame) {
-          setDiceValues(resolvedGame.result || []);
+        if (resolvedGame && resolvedGame.result) {
+          // Set final dice values with smooth transition
+          setDiceValues(resolvedGame.result);
           setLastResult({
             win: resolvedGame.won || false,
             payout: resolvedGame.won ? stake * 1.95 : 0,
@@ -110,6 +152,9 @@ export function GameInterface({ onShowOverlay, onHideOverlay }: GameInterfacePro
           toast.success(resolvedGame.won ? "You won!" : "You lost!", {
             description: `Dice: ${resolvedGame.result?.join(", ")} | ${resolvedGame.won ? `Won ${stake * 1.95} ROLL` : `Lost ${stake} ROLL`}`,
           });
+        } else {
+          // Fallback if no results found
+          toast.error("Could not retrieve game results");
         }
 
         onHideOverlay?.();
