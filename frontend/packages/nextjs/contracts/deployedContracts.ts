@@ -5,14 +5,44 @@
 import { GenericContractsDeclaration } from "~~/utils/helper/contract";
 
 const deployedContracts = {
-  11155111: {
+  31337: {
     EncryptedDiceGame: {
-      address: "0xF402591577a57101B4BBCf91edc964cAaee33205",
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
       abi: [
         {
           inputs: [],
           stateMutability: "nonpayable",
           type: "constructor",
+        },
+        {
+          inputs: [],
+          name: "GameAlreadyResolved",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "InvalidDiceCount",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "MaxMintExceeded",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "NoETHSent",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "OnlyGamePlayer",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "OnlyOwner",
+          type: "error",
         },
         {
           anonymous: false,
@@ -424,7 +454,7 @@ const deployedContracts = {
               type: "uint256",
             },
           ],
-          stateMutability: "pure",
+          stateMutability: "view",
           type: "function",
         },
         {
@@ -511,10 +541,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 9491871,
+      deployedOnBlock: 3,
     },
     FHECounter: {
-      address: "0xcFfDb5ee3e951BB97B89d19F0a64744B7fE27Cfd",
+      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
       abi: [
         {
           inputs: [
@@ -575,12 +605,12 @@ const deployedContracts = {
               type: "uint256",
             },
           ],
-          stateMutability: "pure",
+          stateMutability: "view",
           type: "function",
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 9491623,
+      deployedOnBlock: 4,
     },
   },
 } as const;

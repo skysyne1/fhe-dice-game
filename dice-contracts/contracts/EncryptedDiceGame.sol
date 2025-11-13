@@ -50,6 +50,9 @@ contract EncryptedDiceGame is EthereumConfig {
     // Game storage
     mapping(uint256 => Game) public games;
 
+    // Player games tracking
+    mapping(address => uint256[]) public playerGames;
+
     // Events
     event GameStarted(uint256 indexed gameId, address indexed player, uint8 diceCount, uint256 timestamp);
     event GameResolved(uint256 indexed gameId, address indexed player, uint256 timestamp);
@@ -156,6 +159,9 @@ contract EncryptedDiceGame is EthereumConfig {
         // Deduct stake from balance (Note: In production, need balance validation)
         playerBalance[msg.sender] = FHE.sub(playerBalance[msg.sender], stakeAmount);
 
+        // Track this game for the player
+        playerGames[msg.sender].push(gameId);
+
         // Set permissions
         FHE.allowThis(playerBalance[msg.sender]);
         FHE.allow(playerBalance[msg.sender], msg.sender);
@@ -177,7 +183,7 @@ contract EncryptedDiceGame is EthereumConfig {
         // Generate random dice values
         euint32 sum = FHE.asEuint32(0);
 
-        for (uint8 i = 0; i < game.diceCount; i++) {
+        for (uint8 i = 0; i < game.diceCount; ++i) {
             // Simple pseudo-random generation
             uint32 randomValue = uint32(
                 uint256(keccak256(abi.encodePacked(block.timestamp, block.prevrandao, gameId, i))) % 6
@@ -258,6 +264,20 @@ contract EncryptedDiceGame is EthereumConfig {
     function getGameDiceValues(uint256 gameId) external view returns (euint32[] memory) {
         if (games[gameId].player != msg.sender) revert OnlyGamePlayer();
         return games[gameId].diceValues;
+    }
+
+    /// @notice Get all game IDs for a player
+    /// @param player Player address
+    /// @return Array of game IDs
+    function getPlayerGames(address player) external view returns (uint256[] memory) {
+        return playerGames[player];
+    }
+
+    /// @notice Get player's game count
+    /// @param player Player address  
+    /// @return Number of games played by player
+    function getPlayerGameCount(address player) external view returns (uint256) {
+        return playerGames[player].length;
     }
 
     /// @notice Withdraw ETH (owner only)

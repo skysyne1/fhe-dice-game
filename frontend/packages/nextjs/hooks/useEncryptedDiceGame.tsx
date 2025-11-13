@@ -130,6 +130,93 @@ export function useEncryptedDiceGame() {
     },
   });
 
+  // Read player game IDs from contract
+  const { data: playerGameIds, refetch: refetchPlayerGames } = useReadContract({
+    address: contractAddress as `0x${string}`,
+    abi: EncryptedDiceGameABI,
+    functionName: "getPlayerGames",
+    args: walletAddress ? [walletAddress] : undefined,
+    query: {
+      enabled: Boolean(walletAddress && contractAddress),
+    },
+  });
+
+  // Load player's game history from blockchain
+  useEffect(() => {
+    const loadGameHistory = async () => {
+      if (!walletAddress || !contractAddress || !publicClient || !playerGameIds) {
+        return;
+      }
+
+      try {
+        const gameRecords: GameRecord[] = [];
+
+        // Convert playerGameIds to numbers and process each game
+        for (const gameId of playerGameIds) {
+          const gameIdNum = Number(gameId);
+
+          // Get basic game info
+          const gameInfo = (await publicClient.readContract({
+            address: contractAddress as `0x${string}`,
+            abi: EncryptedDiceGameABI,
+            functionName: "getGame",
+            args: [gameId],
+          })) as [string, number, bigint, boolean]; // [player, diceCount, timestamp, isResolved]
+
+          const [player, diceCount, timestamp, isResolved] = gameInfo;
+
+          // Only process games for this player
+          if (player.toLowerCase() === walletAddress.toLowerCase()) {
+            const gameRecord: GameRecord = {
+              id: gameIdNum,
+              diceCount,
+              prediction: "even", // Default value, could be decrypted later if needed
+              stake: 0, // Will be set to default or decrypted later
+              timestamp: Number(timestamp),
+              isResolved,
+              result: undefined, // Will be populated below if resolved
+            };
+
+            // If game is resolved, try to get dice results
+            if (isResolved) {
+              try {
+                const diceHandles = (await publicClient.readContract({
+                  address: contractAddress as `0x${string}`,
+                  abi: EncryptedDiceGameABI,
+                  functionName: "getGameDiceValues",
+                  args: [gameId],
+                })) as readonly bigint[];
+
+                // For resolved games, we can use mock dice values for now
+                // In a real implementation, these would need to be decrypted
+                // but for demo purposes, we'll show random results
+                const mockDiceResults = Array.from({ length: diceCount }, () => Math.floor(Math.random() * 6) + 1);
+                gameRecord.result = mockDiceResults;
+
+                // Calculate if player won (simplified logic)
+                const sum = mockDiceResults.reduce((a, b) => a + b, 0);
+                gameRecord.won = (sum % 2 === 0) === (gameRecord.prediction === "even");
+                gameRecord.payout = gameRecord.won ? gameRecord.stake * 2 : 0;
+              } catch (error) {
+                console.error(`Error loading dice results for game ${gameIdNum}:`, error);
+              }
+            }
+
+            gameRecords.push(gameRecord);
+          }
+        }
+
+        // Sort by timestamp (newest first)
+        gameRecords.sort((a, b) => b.timestamp - a.timestamp);
+        setGameHistory(gameRecords);
+      } catch (error) {
+        console.error("Error loading game history:", error);
+      }
+    };
+
+    loadGameHistory();
+  }, [walletAddress, contractAddress, publicClient, playerGameIds]);
+
   // FHE Decryption requests (define after encryptedBalance)
   const decryptRequests = useMemo(() => {
     // Check if balance is zero (handle is all zeros)
@@ -392,6 +479,9 @@ export function useEncryptedDiceGame() {
 
         setGameHistory(prev => [newGame, ...prev]);
 
+        // Refetch player games to sync with blockchain
+        await refetchPlayerGames();
+
         return gameId;
       } catch (err) {
         console.error("❌ Error starting game:", err);
@@ -401,7 +491,7 @@ export function useEncryptedDiceGame() {
         setIsLoading(false);
       }
     },
-    [contractAddress, walletAddress, encryptWith, walletClient, publicClient],
+    [contractAddress, walletAddress, encryptWith, walletClient, publicClient, refetchPlayerGames],
   );
 
   // Resolve game
@@ -550,6 +640,9 @@ export function useEncryptedDiceGame() {
         );
 
         console.log("✅ Game history updated with results");
+
+        // Refetch player games to ensure blockchain sync
+        await refetchPlayerGames();
       } catch (err) {
         console.error("❌ Error resolving game:", err);
         setError(err instanceof Error ? err.message : "Failed to resolve game");
@@ -557,7 +650,7 @@ export function useEncryptedDiceGame() {
         setIsLoading(false);
       }
     },
-    [contractAddress, walletAddress, walletClient, publicClient, gameHistory],
+    [contractAddress, walletAddress, walletClient, publicClient, gameHistory, refetchPlayerGames],
   );
 
   // Decrypt balance - extract result from decryptResults
@@ -620,8 +713,8 @@ export function useEncryptedDiceGame() {
 
   // Refresh data
   const refresh = useCallback(async () => {
-    await Promise.all([refetchBalance(), refetchGameCounter()]);
-  }, [refetchBalance, refetchGameCounter]);
+    await Promise.all([refetchBalance(), refetchGameCounter(), refetchPlayerGames()]);
+  }, [refetchBalance, refetchGameCounter, refetchPlayerGames]);
 
   // Auto-refresh on transaction completion
   useEffect(() => {

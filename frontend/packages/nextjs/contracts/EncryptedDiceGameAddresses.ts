@@ -8,8 +8,8 @@ export const EncryptedDiceGameAddresses = {
   // Hardhat Local Network (Chain ID: 31337)
   31337: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
 
-  // Sepolia Testnet (Chain ID: 11155111)
-  11155111: deployedContracts[11155111].EncryptedDiceGame.address,
+  // Sepolia Testnet (Chain ID: 11155111) - add when deployed
+  // 11155111: deployedContracts[11155111].EncryptedDiceGame.address,
 
   // Add other networks as needed
   // 1: "0x...", // Ethereum Mainnet
