@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EncryptedDiceGameABI } from "../abi/EncryptedDiceGameABI";
 import { getEncryptedDiceGameAddress } from "../contracts/EncryptedDiceGameAddresses";
 import { useWagmiEthers } from "./wagmi/useWagmiEthers";
-import { buildParamsFromAbi, useFHEDecrypt, useFHEEncryption, useFhevm, useInMemoryStorage } from "@fhevm-sdk";
+import { buildParamsFromAbi, useFHEDecrypt, useFHEPublicDecrypt, useFHEEncryption, useFhevm, useInMemoryStorage } from "@fhevm-sdk";
 import { decodeEventLog, formatEther, parseEther } from "viem";
 import {
   useAccount,
@@ -248,29 +248,53 @@ export function useEncryptedDiceGame() {
     return [{ handle: handleStr, contractAddress: contractAddress as `0x${string}` }];
   }, [contractAddress, encryptedBalance]);
 
-  // FHE Decryption hook
+  // FHE Public Decryption hook (no signature required)
   const {
     canDecrypt,
     decrypt,
     isDecrypting,
     results: decryptResults,
     message: decryptMessage,
-  } = useFHEDecrypt({
+  } = useFHEPublicDecrypt({
     instance: fhevmInstance,
-    ethersSigner: ethersSigner,
-    fhevmDecryptionSignatureStorage,
     chainId,
     requests: decryptRequests,
   });
 
-  // Manual decrypt - user needs to click to decrypt
-  // Auto-decrypt disabled to avoid signature requests
-  const handleDecryptBalance = useCallback(async () => {
+  // Auto decrypt balance when available (no signature required for public decryption)
+  useEffect(() => {
     if (canDecrypt && !isDecrypting && decryptRequests.length > 0) {
-      console.log("🔓 User requested balance decryption...");
-      await decrypt();
+      console.log("🔓 Auto-decrypting balance (public decryption)...");
+      decrypt();
     }
   }, [canDecrypt, isDecrypting, decryptRequests, decrypt]);
+
+  // Function to make balance publicly decryptable (user needs to call this once)
+  const makeBalancePublic = useCallback(async () => {
+    if (!contractAddress || !walletAddress) {
+      setError("Contract not found or wallet not connected");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      console.log("🔓 Making balance publicly decryptable...");
+      
+      writeContract({
+        address: contractAddress as `0x${string}`,
+        abi: EncryptedDiceGameABI,
+        functionName: "makeBalancePubliclyDecryptable",
+        args: [walletAddress],
+      });
+    } catch (err) {
+      console.error("Error making balance public:", err);
+      setError(err instanceof Error ? err.message : "Failed to make balance public");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [contractAddress, walletAddress, writeContract]);
 
   // Decrypt hook for dice values (following FHECounter pattern)
   const diceDecryptRequests = useMemo(() => {
@@ -744,7 +768,7 @@ export function useEncryptedDiceGame() {
     resolveGame,
     decryptBalance,
     decrypt, // Manual decrypt function
-    handleDecryptBalance, // User-friendly decrypt function
+    makeBalancePublic, // Make balance publicly decryptable
     getGameDetails,
     refresh,
     refreshBalance: refresh, // Alias for compatibility

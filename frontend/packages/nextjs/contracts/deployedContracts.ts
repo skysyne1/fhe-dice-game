@@ -45,6 +45,11 @@ const deployedContracts = {
           type: "error",
         },
         {
+          inputs: [],
+          name: "ZamaProtocolUnsupported",
+          type: "error",
+        },
+        {
           anonymous: false,
           inputs: [
             {
@@ -222,6 +227,19 @@ const deployedContracts = {
         {
           inputs: [],
           name: "ROLL_TOKEN_RATE",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "confidentialProtocolId",
           outputs: [
             {
               internalType: "uint256",
@@ -496,19 +514,6 @@ const deployedContracts = {
             },
           ],
           name: "playerGames",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "protocolId",
           outputs: [
             {
               internalType: "uint256",
@@ -609,6 +614,24 @@ const deployedContracts = {
       address: "0x5543313646c276654a86b0A70Bff59F34a2834e1",
       abi: [
         {
+          inputs: [],
+          name: "ZamaProtocolUnsupported",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "confidentialProtocolId",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "externalEuint32",
@@ -657,19 +680,6 @@ const deployedContracts = {
           stateMutability: "nonpayable",
           type: "function",
         },
-        {
-          inputs: [],
-          name: "protocolId",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
       ],
       inheritedFunctions: {},
       deployedOnBlock: 4,
@@ -677,7 +687,7 @@ const deployedContracts = {
   },
   11155111: {
     EncryptedDiceGame: {
-      address: "0x919c0299ec078830DA292C9d9982E20C09666df2",
+      address: "0x270cEba37b81a2CE103E5E76a5b794eb33cDf101",
       abi: [
         {
           inputs: [],
@@ -712,6 +722,11 @@ const deployedContracts = {
         {
           inputs: [],
           name: "OnlyOwner",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "ZamaProtocolUnsupported",
           type: "error",
         },
         {
@@ -904,6 +919,19 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "confidentialProtocolId",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
           name: "gameCounter",
           outputs: [
             {
@@ -1077,6 +1105,25 @@ const deployedContracts = {
               type: "address",
             },
           ],
+          name: "getPlayerBalance",
+          outputs: [
+            {
+              internalType: "euint32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+          ],
           name: "getPlayerGameCount",
           outputs: [
             {
@@ -1105,6 +1152,19 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+          ],
+          name: "makeBalancePubliclyDecryptable",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -1166,19 +1226,6 @@ const deployedContracts = {
             },
           ],
           name: "playerGames",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "protocolId",
           outputs: [
             {
               internalType: "uint256",
@@ -1273,11 +1320,29 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 9622383,
+      deployedOnBlock: 9655688,
     },
     FHECounter: {
-      address: "0x5D015EdC52847BD6F3701A771ee69317DDc43f53",
+      address: "0xf4502C41A58ddFCEc38382d6c1875a0dBdCA9692",
       abi: [
+        {
+          inputs: [],
+          name: "ZamaProtocolUnsupported",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "confidentialProtocolId",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
         {
           inputs: [
             {
@@ -1327,22 +1392,9 @@ const deployedContracts = {
           stateMutability: "nonpayable",
           type: "function",
         },
-        {
-          inputs: [],
-          name: "protocolId",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 9622384,
+      deployedOnBlock: 9655689,
     },
   },
 } as const;

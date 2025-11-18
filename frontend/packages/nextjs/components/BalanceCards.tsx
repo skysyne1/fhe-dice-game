@@ -11,7 +11,7 @@ export function BalanceCards() {
   const {
     balance: rollBalance,
     encryptedBalance,
-    handleDecryptBalance,
+    makeBalancePublic,
     canDecrypt,
     isDecrypting,
     refreshBalance,
@@ -65,15 +65,15 @@ export function BalanceCards() {
                   })()}
                 </div>
                 <div className="text-sm text-[#a3a3a3] mt-1">
-                  Balance is encrypted and can only be decrypted by the owner
+                  Balance is encrypted - make it public to auto-display
                 </div>
                 <Button
-                  onClick={handleDecryptBalance}
-                  disabled={!canDecrypt || isDecrypting}
+                  onClick={makeBalancePublic}
+                  disabled={isLoading}
                   size="sm"
                   className="mt-2 bg-[#fde047]/20 hover:bg-[#fde047]/30 text-[#fde047] border border-[#fde047]/30"
                 >
-                  {isDecrypting ? "Decrypting..." : "Decrypt Balance"}
+                  {isLoading ? "Processing..." : "Make Balance Public"}
                 </Button>
               </>
             ) : (

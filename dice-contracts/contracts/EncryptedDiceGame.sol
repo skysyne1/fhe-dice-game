@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {FHE, euint32, euint8, ebool, externalEuint32, externalEuint8} from "@fhevm/solidity/lib/FHE.sol";
-import {EthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @dev Custom errors for gas optimization and better UX
 error OnlyOwner();
@@ -18,9 +18,9 @@ error OnlyGamePlayer();
 
 /// @title Encrypted Dice Game Contract
 /// @notice A dice rolling game with FHE encryption for privacy
-/// @dev This contract uses FHEVM v0.9 for fully homomorphic encryption
+/// @dev This contract uses FHEVM v0.9.1 for fully homomorphic encryption
 /// @author Zama Community Contributors
-contract EncryptedDiceGame is EthereumConfig {
+contract EncryptedDiceGame is ZamaEthereumConfig {
     // Game constants
     uint256 public constant PAYOUT_MULTIPLIER = 195; // 1.95x payout
     uint256 public constant BASIS_POINTS = 100;
@@ -278,6 +278,22 @@ contract EncryptedDiceGame is EthereumConfig {
     /// @return Number of games played by player
     function getPlayerGameCount(address player) external view returns (uint256) {
         return playerGames[player].length;
+    }
+
+    /// @notice Make a player's balance publicly decryptable
+    /// @param player The player whose balance should be made public
+    function makeBalancePubliclyDecryptable(address player) external {
+        // Only the player themselves or the owner can make balance public
+        require(msg.sender == player || msg.sender == owner, "Unauthorized");
+        
+        FHE.makePubliclyDecryptable(playerBalance[player]);
+    }
+
+    /// @notice Get a player's encrypted balance (for public decryption)
+    /// @param player The player's address
+    /// @return The encrypted balance
+    function getPlayerBalance(address player) external view returns (euint32) {
+        return playerBalance[player];
     }
 
     /// @notice Withdraw ETH (owner only)

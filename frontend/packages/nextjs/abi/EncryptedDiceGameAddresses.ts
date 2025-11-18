@@ -18,7 +18,7 @@ export const encryptedDiceGameAddresses: EncryptedDiceGameAddressMap = {
 
   // Sepolia Testnet
   11155111: {
-    address: "0x0000000000000000000000000000000000000000", // Will be updated after deployment
+    address: "0x270cEba37b81a2CE103E5E76a5b794eb33cDf101", // Deployed with FHEVM v0.9.1 + public decryption support
     abi: require("./EncryptedDiceGameABI").EncryptedDiceGameABI,
   },
 
