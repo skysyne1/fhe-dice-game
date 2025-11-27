@@ -31,6 +31,7 @@ export function BalanceCards() {
   // Manual decrypt state
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [isEthRefreshing, setIsEthRefreshing] = useState(false);
+  const [isRollRefreshing, setIsRollRefreshing] = useState(false);
 
   const ethBalance = ethBalanceData ? parseFloat(ethBalanceData.formatted) : 0;
 
@@ -117,6 +118,16 @@ export function BalanceCards() {
     }
   };
 
+  const handleRefreshRollBalance = async () => {
+    if (!isContractReady) return;
+    try {
+      setIsRollRefreshing(true);
+      await refreshBalance();
+    } finally {
+      setIsRollRefreshing(false);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
       {/* ROLL Balance */}
@@ -133,8 +144,16 @@ export function BalanceCards() {
             </div>
             <div className="flex items-center gap-2">
               {isContractReady && (
-                <Button onClick={refreshBalance} disabled={isLoading} size="sm" variant="ghost" className="h-8 w-8 p-0">
-                  <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                <Button
+                  onClick={handleRefreshRollBalance}
+                  disabled={isLoading || isRollRefreshing}
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${isLoading || isRollRefreshing ? "animate-spin" : ""}`}
+                  />
                 </Button>
               )}
             </div>
