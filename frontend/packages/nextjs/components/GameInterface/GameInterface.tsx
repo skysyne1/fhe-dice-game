@@ -24,6 +24,8 @@ export function GameInterface({ onShowOverlay, onHideOverlay }: GameInterfacePro
   const {
     // State
     isLoading: isContractLoading,
+    isTransactionPending,
+    isTransactionLoading,
     error: contractError,
     gameHistory,
     isContractAvailable,
@@ -32,6 +34,7 @@ export function GameInterface({ onShowOverlay, onHideOverlay }: GameInterfacePro
     startGame,
     resolveGame,
     swapETHForROLL,
+    swapROLLForETH,
     mintTokens,
     refreshBalance,
     clearError,
@@ -211,11 +214,16 @@ export function GameInterface({ onShowOverlay, onHideOverlay }: GameInterfacePro
         balance={balance}
         isContractReady={isContractReady}
         isContractLoading={isContractLoading}
+        isTransactionPending={isTransactionPending}
+        isTransactionLoading={isTransactionLoading}
         contractError={contractError}
         onMintTokens={handleMintTokens}
         onSwapETHForROLL={swapETHForROLL}
+        onSwapROLLForETH={swapROLLForETH}
         onRefresh={refreshBalance}
         onClearError={clearError}
+        onShowOverlay={onShowOverlay}
+        onHideOverlay={onHideOverlay}
       />
     </div>
   );

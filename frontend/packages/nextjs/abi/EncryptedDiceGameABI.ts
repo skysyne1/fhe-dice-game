@@ -461,7 +461,19 @@ export const EncryptedDiceGameABI = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "addTreasuryETH",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
     inputs: [
+      {
+        internalType: "uint32",
+        name: "rollAmount",
+        type: "uint32",
+      },
       {
         internalType: "externalEuint32",
         name: "encryptedAmount",

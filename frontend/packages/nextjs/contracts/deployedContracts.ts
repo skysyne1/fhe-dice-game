@@ -687,7 +687,7 @@ const deployedContracts = {
   },
   11155111: {
     EncryptedDiceGame: {
-      address: "0x548806a9c72e25CE3dc91a9c9fB28D652fDA41DD",
+      address: "0x3160Fd44b86Ec234d773b6426cC10B7B6C7daD6d",
       abi: [
         {
           inputs: [],
@@ -836,6 +836,25 @@ const deployedContracts = {
           type: "event",
         },
         {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "funder",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "TreasuryFunded",
+          type: "event",
+        },
+        {
           stateMutability: "payable",
           type: "fallback",
         },
@@ -915,6 +934,13 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "addTreasuryETH",
+          outputs: [],
+          stateMutability: "payable",
           type: "function",
         },
         {
@@ -1001,6 +1027,19 @@ const deployedContracts = {
               internalType: "euint32",
               name: "",
               type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getContractETHBalance",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
             },
           ],
           stateMutability: "view",
@@ -1292,6 +1331,11 @@ const deployedContracts = {
         {
           inputs: [
             {
+              internalType: "uint32",
+              name: "rollAmount",
+              type: "uint32",
+            },
+            {
               internalType: "externalEuint32",
               name: "encryptedAmount",
               type: "bytes32",
@@ -1320,10 +1364,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 9668573,
+      deployedOnBlock: 9708454,
     },
     FHECounter: {
-      address: "0xf4502C41A58ddFCEc38382d6c1875a0dBdCA9692",
+      address: "0xFd6037c5f84ed185a400C72bc8cD74Edcd85128A",
       abi: [
         {
           inputs: [],
@@ -1394,7 +1438,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 9655689,
+      deployedOnBlock: 9708455,
     },
   },
 } as const;

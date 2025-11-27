@@ -11,7 +11,7 @@ export const encryptedDiceGameAddresses: Record<number, `0x${string}`> = {
   31337: "0xb87016578Ad00e7bAAF1d9D99296df7d215A62b2",
 
   // Sepolia Testnet
-  11155111: "0x548806a9c72e25CE3dc91a9c9fB28D652fDA41DD",
+  11155111: "0x3160Fd44b86Ec234d773b6426cC10B7B6C7daD6d",
 
   // Ethereum Mainnet (for future use)
   1: "0x0000000000000000000000000000000000000000",

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useDecrypt } from "../../fhevm-sdk/src/adapters/useDecrypt";
 import { initializeFheInstance } from "../../fhevm-sdk/src/core";
 import { useDecryptedBalance } from "../contexts/DecryptedBalanceContext";
@@ -10,16 +11,26 @@ import { useAccount, useBalance } from "wagmi";
 
 export function BalanceCards() {
   const { address } = useAccount();
-  const { data: ethBalanceData } = useBalance({ address });
+  const {
+    data: ethBalanceData,
+    refetch: refetchEthBalance,
+    isFetching: isEthFetching,
+  } = useBalance({
+    address,
+    query: {
+      enabled: Boolean(address),
+    },
+  });
 
   const { encryptedBalance, refreshBalance, isLoading, isContractReady, contractAddress } = useEncryptedDiceGame();
-  const { decryptedRollBalance, setDecryptedRollBalance, lastDecryptedHandle, setLastDecryptedHandle } =
+  const { decryptedRollBalance, setDecryptedRollBalance, lastDecryptedHandle, setLastDecryptedHandle, clearCache } =
     useDecryptedBalance();
 
   const { decrypt } = useDecrypt();
 
   // Manual decrypt state
   const [isDecrypting, setIsDecrypting] = useState(false);
+  const [isEthRefreshing, setIsEthRefreshing] = useState(false);
 
   const ethBalance = ethBalanceData ? parseFloat(ethBalanceData.formatted) : 0;
 
@@ -74,8 +85,35 @@ export function BalanceCards() {
       console.log("🎉 Balance decrypted successfully! Value:", decryptedValue, "ROLL");
     } catch (error: any) {
       console.error("❌ Decryption failed:", error);
+
+      // Check if error is due to invalid handle (contract was redeployed)
+      if (
+        error?.message?.includes("is not of valid type") ||
+        error?.message?.includes("Handle") ||
+        error?.message?.includes("Failed to fetch")
+      ) {
+        console.log("🔄 Invalid handle detected, clearing cache...");
+        clearCache();
+        toast.error("Balance cache expired", {
+          description: "Contract was redeployed. Please mint new tokens first.",
+        });
+      } else {
+        toast.error("Decryption failed", {
+          description: error?.message || "Please try again",
+        });
+      }
     } finally {
       setIsDecrypting(false);
+    }
+  };
+
+  const handleRefreshEthBalance = async () => {
+    if (!address || !refetchEthBalance) return;
+    try {
+      setIsEthRefreshing(true);
+      await refetchEthBalance();
+    } finally {
+      setIsEthRefreshing(false);
     }
   };
 
@@ -165,6 +203,17 @@ export function BalanceCards() {
               </div>
               <span className="text-[#d4d4d4]">ETH Balance</span>
             </div>
+            {address && (
+              <Button
+                onClick={handleRefreshEthBalance}
+                disabled={isEthRefreshing || isEthFetching}
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0"
+              >
+                <RefreshCw className={`h-4 w-4 ${(isEthRefreshing || isEthFetching) ? "animate-spin" : ""}`} />
+              </Button>
+            )}
           </div>
           <div className="mt-2">
             <div className="text-3xl font-bold text-[#ffffff]">{address ? ethBalance.toFixed(4) : "---"}</div>

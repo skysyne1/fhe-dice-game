@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { EncryptedDiceGameABI } from "../abi/EncryptedDiceGameABI";
 import { getEncryptedDiceGameAddress } from "../abi/EncryptedDiceGameAddresses";
+import { useDecryptedBalance } from "../contexts/DecryptedBalanceContext";
 import { ethers } from "ethers";
 import { initializeFheInstance, useContract, useEncrypt } from "fhevm-sdk";
 import {
@@ -61,8 +62,32 @@ export function useEncryptedDiceGame() {
   // Contract info
   const contractAddress = chainId ? getEncryptedDiceGameAddress(chainId) : undefined;
 
+  // Auto-clear cache when contract address changes
+  const { clearCache } = useDecryptedBalance();
+
+  useEffect(() => {
+    const STORAGE_KEY = "fhe-dice-contract-address";
+
+    if (contractAddress) {
+      try {
+        const savedAddress = localStorage.getItem(STORAGE_KEY);
+
+        if (savedAddress && savedAddress !== contractAddress) {
+          console.log("🔄 Contract address changed, clearing cache...");
+          console.log("  Old:", savedAddress);
+          console.log("  New:", contractAddress);
+          clearCache();
+        }
+
+        localStorage.setItem(STORAGE_KEY, contractAddress);
+      } catch (error) {
+        console.warn("Failed to handle contract address change:", error);
+      }
+    }
+  }, [contractAddress, clearCache]);
+
   // Wagmi hooks
-  const { writeContract, data: writeData, isPending: isWritePending } = useWriteContract();
+  const { writeContractAsync, data: writeData, isPending: isWritePending } = useWriteContract();
   const { isLoading: isTransactionLoading } = useWaitForTransactionReceipt({
     hash: writeData,
   });
@@ -78,6 +103,25 @@ export function useEncryptedDiceGame() {
   const [decryptedBalance, setDecryptedBalance] = useState<number | undefined>(undefined);
 
   // Note: FHEVM initialization is handled by the useEffect above
+  // Helper: convert Uint8Array or other types to 0x-prefixed hex string for viem/wagmi
+  const toHexString = (value: any): `0x${string}` => {
+    if (!value) return "0x" as `0x${string}`;
+
+    if (typeof value === "string") {
+      return (value.startsWith("0x") ? value : `0x${value}`) as `0x${string}`;
+    }
+
+    if (value instanceof Uint8Array) {
+      const hex = Array.from(value)
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
+      return (`0x${hex}`) as `0x${string}`;
+    }
+
+    // Fallback: try toString and wrap
+    const str = String(value);
+    return (`0x${str.replace(/^0x/, "")}`) as `0x${string}`;
+  };
 
   // Read encrypted balance using new pattern
   const { data: contractBalance, refetch: refetchBalance } = useReadContract({
@@ -192,21 +236,20 @@ export function useEncryptedDiceGame() {
         setIsLoading(true);
         setError(null);
 
-        console.log("🪙 Calling writeContract...", {
+        console.log("🪙 Calling writeContractAsync...", {
           address: contractAddress,
           functionName: "mintTokens",
           args: [amount],
         });
 
-        await writeContract({
+        const txHash = await writeContractAsync({
           address: contractAddress as `0x${string}`,
           abi: EncryptedDiceGameABI,
           functionName: "mintTokens",
           args: [BigInt(amount)], // Contract only takes amount, msg.sender is used automatically
         });
 
-        console.log("✅ Transaction submitted successfully!");
-        // Note: Transaction hash will be available in writeData via useEffect
+        console.log("✅ Mint transaction submitted!", txHash);
       } catch (error: any) {
         console.error("❌ Mint tokens failed:", error);
 
@@ -226,10 +269,12 @@ export function useEncryptedDiceGame() {
         setIsLoading(false);
       }
     },
-    [contractAddress, walletAddress, writeContract],
+    [contractAddress, walletAddress, writeContractAsync],
   );
 
   // Swap ETH for ROLL tokens
+  // Contract uses euint32 with normalized ROLL units (no decimals)
+  // Rate: 1 ETH = 1000 ROLL (ROLL has no decimals, 1 ROLL = 1 unit)
   const swapETHForROLL = useCallback(
     async (ethAmount: number) => {
       if (!contractAddress || !walletAddress) return;
@@ -238,21 +283,108 @@ export function useEncryptedDiceGame() {
         setIsLoading(true);
         setError(null);
 
-        await writeContract({
+        // Rate: 1 ETH = 1000 ROLL (ROLL without decimals)
+        const expectedROLL = ethAmount * 1000;
+        console.log(`🔄 Swapping ${ethAmount} ETH for ${expectedROLL} ROLL units`);
+
+        // Contract calculation: rollAmount = (msg.value * ROLL_TOKEN_RATE) / 1e18
+        // With msg.value in wei and ROLL_TOKEN_RATE = 1000:
+        // For 1 ETH (1e18 wei): rollAmount = (1e18 * 1000) / 1e18 = 1000 ROLL units
+        // Max: uint32.max = 4,294,967,295, so max ~4.3M ROLL = ~4,300 ETH
+
+        // Check if expected ROLL amount fits in uint32
+        if (expectedROLL > 4294967295) {
+          throw new Error(`Amount too large - maximum ~4.3M ROLL (${4294967295 / 1000} ETH) per transaction`);
+        }
+
+        // Convert ETH to wei
+        const ethAmountWei = BigInt(Math.round(ethAmount * 1e18));
+        console.log(`📊 Sending ${ethAmountWei.toString()} wei to contract`);
+        console.log(`📊 Expected ROLL: ${expectedROLL} ROLL units (no decimals)`);
+
+        const txHash = await writeContractAsync({
           address: contractAddress as `0x${string}`,
           abi: EncryptedDiceGameABI,
           functionName: "swapETHForROLL",
           args: [],
-          value: BigInt(Math.floor(ethAmount * 1e18)),
+          value: ethAmountWei,
         });
+        console.log("✅ ETH→ROLL swap transaction submitted!", txHash);
       } catch (error) {
         console.error("Swap ETH for ROLL failed:", error);
         setError("Failed to swap ETH for ROLL");
+        throw error;
       } finally {
         setIsLoading(false);
       }
     },
-    [contractAddress, walletAddress, writeContract],
+    [contractAddress, walletAddress, writeContractAsync],
+  );
+
+  // Swap ROLL for ETH tokens
+  const swapROLLForETH = useCallback(
+    async (rollAmount: number) => {
+      // Validate prerequisites explicitly so we know why MetaMask doesn't open
+      if (!contractAddress) {
+        const err = new Error("Contract address is not available");
+        console.error(err);
+        setError(err.message);
+        throw err;
+      }
+
+      if (!walletAddress) {
+        const err = new Error("Wallet not connected");
+        console.error(err);
+        setError(err.message);
+        throw err;
+      }
+
+      if (!walletClient) {
+        const err = new Error("Wallet client not ready. Please reconnect your wallet.");
+        console.error(err);
+        setError(err.message);
+        throw err;
+      }
+
+      if (!isInitialized) {
+        const err = new Error("FHEVM not initialized. Please wait a moment and try again.");
+        console.error(err);
+        setError(err.message);
+        throw err;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        console.log(`🔄 Swapping ${rollAmount} ROLL for ETH`);
+
+        // Encrypt ROLL amount
+        const encryptedAmount = await encrypt(contractAddress, walletAddress, rollAmount);
+        console.log("🔐 Encrypted data structure:", encryptedAmount);
+
+        const txHash = await writeContractAsync({
+          address: contractAddress as `0x${string}`,
+          abi: EncryptedDiceGameABI,
+          functionName: "swapROLLForETH",
+          args: [
+            rollAmount, // plaintext rollAmount (uint32)
+            toHexString(encryptedAmount.encryptedData), // encrypted handle from FHEVM SDK
+            toHexString(encryptedAmount.proof), // proof from encrypted data
+          ],
+        });
+
+        console.log("✅ ROLL→ETH swap transaction submitted!", txHash);
+        // Note: Transaction confirmation will be handled by the component using useWaitForTransactionReceipt
+      } catch (error) {
+        console.error("Swap ROLL for ETH failed:", error);
+        setError("Failed to swap ROLL for ETH");
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [contractAddress, walletAddress, walletClient, writeContractAsync, isInitialized, encrypt],
   );
 
   // Start encrypted game using FHEVM 0.9 pattern
@@ -278,18 +410,20 @@ export function useEncryptedDiceGame() {
         console.log("✅ Encryption completed, submitting transaction...");
 
         // Submit game transaction
-        await writeContract({
+        const txHash = await writeContractAsync({
           address: contractAddress as `0x${string}`,
           abi: EncryptedDiceGameABI,
           functionName: "startGame",
           args: [
             diceCount,
-            encryptedPrediction.encryptedData,
-            encryptedPrediction.proof,
-            encryptedStake.encryptedData,
-            encryptedStake.proof,
+            toHexString(encryptedPrediction.encryptedData),
+            toHexString(encryptedPrediction.proof),
+            toHexString(encryptedStake.encryptedData),
+            toHexString(encryptedStake.proof),
           ],
         });
+
+        console.log("✅ Start game transaction submitted!", txHash);
 
         return gameCounter ? Number(gameCounter) + 1 : 1;
       } catch (error) {
@@ -300,7 +434,7 @@ export function useEncryptedDiceGame() {
         setIsLoading(false);
       }
     },
-    [contractAddress, walletAddress, walletClient, isInitialized, encrypt, encryptError, writeContract, gameCounter],
+    [contractAddress, walletAddress, walletClient, isInitialized, encrypt, encryptError, writeContractAsync, gameCounter],
   );
 
   // Resolve game using FHEVM 0.9 self-relaying pattern
@@ -315,7 +449,7 @@ export function useEncryptedDiceGame() {
         console.log("🎲 Resolving game with FHEVM 0.9 self-relaying...");
 
         // Step 1: Call resolveGame to generate encrypted dice values
-        await writeContract({
+        const txHash = await writeContractAsync({
           address: contractAddress as `0x${string}`,
           abi: EncryptedDiceGameABI,
           functionName: "resolveGame",
@@ -328,7 +462,7 @@ export function useEncryptedDiceGame() {
         // 3. Use publicDecrypt to get cleartext values
         // 4. Submit cleartext values back with verification signatures
 
-        console.log("✅ Game resolution initiated");
+        console.log("✅ Game resolution transaction submitted!", txHash);
       } catch (error) {
         console.error("Resolve game failed:", error);
         setError("Failed to resolve game");
@@ -336,7 +470,7 @@ export function useEncryptedDiceGame() {
         setIsLoading(false);
       }
     },
-    [contractAddress, walletAddress, walletClient, writeContract],
+    [contractAddress, walletAddress, walletClient, writeContractAsync],
   );
 
   // Refresh data
@@ -358,6 +492,8 @@ export function useEncryptedDiceGame() {
 
     // Loading states
     isLoading: isLoading || isWritePending || isTransactionLoading || isEncrypting,
+    isTransactionPending: isWritePending,
+    isTransactionLoading,
     error: error || encryptError,
 
     // Game data
@@ -375,12 +511,41 @@ export function useEncryptedDiceGame() {
     // Functions
     mintTokens,
     swapETHForROLL,
+    swapROLLForETH,
     startGame,
     resolveGame,
     refreshBalance: async () => {
       console.log("🔄 Refreshing balance...");
       await refetchBalance();
       console.log("✅ Balance refresh complete");
+    },
+
+    // Owner functions
+    addTreasuryETH: async (ethAmount: number) => {
+      if (!contractAddress || !walletAddress) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const ethAmountWei = BigInt(Math.round(ethAmount * 1e18));
+
+        const txHash = await writeContractAsync({
+          address: contractAddress as `0x${string}`,
+          abi: EncryptedDiceGameABI,
+          functionName: "addTreasuryETH" as any,
+          args: [],
+          value: ethAmountWei as any,
+        });
+
+        console.log(`✅ Added ${ethAmount} ETH to contract treasury. Tx hash:`, txHash);
+      } catch (error) {
+        console.error("Add treasury ETH failed:", error);
+        setError("Failed to add ETH to treasury");
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
     },
 
     // Utils

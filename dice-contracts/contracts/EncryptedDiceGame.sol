@@ -33,7 +33,7 @@ contract EncryptedDiceGame is ZamaEthereumConfig {
     address public owner;
     uint256 public gameCounter;
 
-    // Encrypted balances
+    // Encrypted balances (using euint32 for ROLL without decimals)
     mapping(address => euint32) public playerBalance;
 
     // Game struct
@@ -41,7 +41,7 @@ contract EncryptedDiceGame is ZamaEthereumConfig {
         address player;
         uint8 diceCount;
         euint8 prediction; // 0 for even, 1 for odd (encrypted)
-        euint32 stakeAmount; // encrypted
+        euint32 stakeAmount; // encrypted (ROLL without decimals)
         euint32[] diceValues; // encrypted dice results
         uint256 timestamp;
         bool isResolved;
@@ -58,6 +58,7 @@ contract EncryptedDiceGame is ZamaEthereumConfig {
     event GameResolved(uint256 indexed gameId, address indexed player, uint256 timestamp);
     event TokensSwapped(address indexed user, uint256 ethAmount, uint256 rollAmount, bool ethToRoll);
     event TokensMinted(address indexed user, uint256 amount);
+    event TreasuryFunded(address indexed funder, uint256 amount);
 
     // Modifiers
     modifier onlyOwner() {
@@ -77,7 +78,7 @@ contract EncryptedDiceGame is ZamaEthereumConfig {
     }
 
     /// @notice Mint ROLL tokens for testing
-    /// @param amount Amount of ROLL tokens to mint
+    /// @param amount Amount of ROLL tokens to mint (in ROLL units without decimals)
     function mintTokens(uint256 amount) external {
         if (amount > MAX_MINT) revert MaxMintExceeded();
 
@@ -92,10 +93,19 @@ contract EncryptedDiceGame is ZamaEthereumConfig {
     }
 
     /// @notice Swap ETH for ROLL tokens
+    /// @dev 1 ETH = 1000 ROLL (ROLL has no decimals, 1 ROLL = 1 unit)
+    /// msg.value is in wei (1 ETH = 1e18 wei)
+    /// ROLL amount = (msg.value / 1e18) * 1000 = ROLL units without decimals
     function swapETHForROLL() external payable {
         if (msg.value == 0) revert NoETHSent();
 
-        uint256 rollAmount = msg.value * ROLL_TOKEN_RATE;
+        // Calculate ROLL amount: normalize msg.value to ETH units, then multiply by rate
+        // msg.value (wei) / 1e18 = ETH amount, ETH * 1000 = ROLL units
+        uint256 rollAmount = (msg.value * ROLL_TOKEN_RATE) / 1 ether;
+        
+        // Ensure rollAmount fits in uint32
+        require(rollAmount <= type(uint32).max, "ROLL amount too large for uint32");
+        
         euint32 encryptedAmount = FHE.asEuint32(uint32(rollAmount));
 
         playerBalance[msg.sender] = FHE.add(playerBalance[msg.sender], encryptedAmount);
@@ -108,23 +118,44 @@ contract EncryptedDiceGame is ZamaEthereumConfig {
     }
 
     /// @notice Swap ROLL tokens for ETH
+    /// @param rollAmount ROLL amount to swap (in ROLL units, no decimals)
     /// @param encryptedAmount Encrypted ROLL amount to swap
     /// @param amountProof Proof for the encrypted amount
-    function swapROLLForETH(externalEuint32 encryptedAmount, bytes calldata amountProof) external {
-        euint32 rollAmount = FHE.fromExternal(encryptedAmount, amountProof);
+    function swapROLLForETH(uint32 rollAmount, externalEuint32 encryptedAmount, bytes calldata amountProof) external {
+        require(rollAmount > 0, "Amount must be greater than 0");
+        
+        // Calculate ETH amount: rollAmount / ROLL_TOKEN_RATE
+        uint256 ethAmount = (uint256(rollAmount) * 1 ether) / ROLL_TOKEN_RATE;
+        
+        // Check contract has enough ETH
+        require(address(this).balance >= ethAmount, "Insufficient contract ETH balance");
+        
+        euint32 encRollAmount = FHE.fromExternal(encryptedAmount, amountProof);
 
-        // Deduct from balance (Note: In production, need balance validation)
-        playerBalance[msg.sender] = FHE.sub(playerBalance[msg.sender], rollAmount);
+        // Deduct from balance
+        playerBalance[msg.sender] = FHE.sub(playerBalance[msg.sender], encRollAmount);
 
         // Set permissions
         FHE.allowThis(playerBalance[msg.sender]);
         FHE.allow(playerBalance[msg.sender], msg.sender);
 
-        // For demo: send fixed ETH amount (in production, need decryption oracle)
-        uint256 ethAmount = 1 ether;
+        // Send calculated ETH amount to user
         payable(msg.sender).transfer(ethAmount);
 
-        emit TokensSwapped(msg.sender, ethAmount, 1000 ether, false);
+        emit TokensSwapped(msg.sender, ethAmount, rollAmount, false);
+    }
+
+    /// @notice Add ETH to contract treasury (only owner)
+    /// @dev This function allows the owner to fund the contract for ROLL→ETH swaps
+    function addTreasuryETH() external payable onlyOwner {
+        require(msg.value > 0, "Must send ETH");
+        emit TreasuryFunded(msg.sender, msg.value);
+    }
+
+    /// @notice Get contract ETH balance
+    /// @return Contract's ETH balance in wei
+    function getContractETHBalance() external view returns (uint256) {
+        return address(this).balance;
     }
 
     /// @notice Start a new dice game
