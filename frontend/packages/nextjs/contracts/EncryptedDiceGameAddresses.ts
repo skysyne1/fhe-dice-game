@@ -8,10 +8,10 @@
  */
 export const encryptedDiceGameAddresses: Record<number, `0x${string}`> = {
   // Localhost/Hardhat Network
-  31337: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  31337: "0xb87016578Ad00e7bAAF1d9D99296df7d215A62b2",
 
   // Sepolia Testnet
-  11155111: "0x319B38474f5d565655e70B268F06832006541bB2",
+  11155111: "0xe3De829908d1afA66bC6b116C77bC832a351Cb88",
 
   // Ethereum Mainnet (for future use)
   1: "0x0000000000000000000000000000000000000000",

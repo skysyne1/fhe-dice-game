@@ -24,6 +24,15 @@ export type SwapRecord = {
   direction: "ETH_TO_ROLL" | "ROLL_TO_ETH";
 };
 
+export type TransferRecord = {
+  id: string; // Transaction hash
+  timestamp: number;
+  from: string; // Sender address
+  to: string; // Recipient address
+  amount: bigint; // ROLL amount transferred
+  type: "SENT" | "RECEIVED"; // Type based on current user
+};
+
 export function useEncryptedDiceGame() {
   const { address: walletAddress, chainId } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -113,6 +122,7 @@ export function useEncryptedDiceGame() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [swapHistory, setSwapHistory] = useState<SwapRecord[]>([]);
+  const [transferHistory, setTransferHistory] = useState<TransferRecord[]>([]);
   const [encryptedBalance, setEncryptedBalance] = useState<string>("");
   const [decryptedBalance, setDecryptedBalance] = useState<number | undefined>(undefined);
 
@@ -257,10 +267,125 @@ export function useEncryptedDiceGame() {
     }
   }, [walletAddress, contractAddress, publicClient]);
 
+  // Load transfer history from blockchain using TokensTransferred events
+  const loadTransferHistory = useCallback(async () => {
+    if (!walletAddress || !contractAddress || !publicClient) {
+      setTransferHistory([]);
+      return;
+    }
+
+    try {
+      console.log("🔄 Loading transfer history...", { walletAddress, contractAddress });
+
+      // Get current block number to limit query range
+      const currentBlock = await publicClient.getBlockNumber();
+      const MAX_BLOCKS_QUERY = 10000n;
+      const fromBlock = currentBlock > MAX_BLOCKS_QUERY ? currentBlock - MAX_BLOCKS_QUERY : 0n;
+
+      console.log(`📊 Querying transfer events from block ${fromBlock} to ${currentBlock}`);
+
+      // Query TokensTransferred events where user is sender
+      const sentEvents = await publicClient.getLogs({
+        address: contractAddress as `0x${string}`,
+        event: {
+          type: "event",
+          name: "TokensTransferred",
+          inputs: [
+            { type: "address", indexed: true, name: "from" },
+            { type: "address", indexed: true, name: "to" },
+            { type: "uint256", indexed: false, name: "amount" },
+          ],
+        },
+        args: {
+          from: walletAddress as `0x${string}`,
+        },
+        fromBlock,
+        toBlock: currentBlock,
+      });
+
+      // Query TokensTransferred events where user is receiver
+      const receivedEvents = await publicClient.getLogs({
+        address: contractAddress as `0x${string}`,
+        event: {
+          type: "event",
+          name: "TokensTransferred",
+          inputs: [
+            { type: "address", indexed: true, name: "from" },
+            { type: "address", indexed: true, name: "to" },
+            { type: "uint256", indexed: false, name: "amount" },
+          ],
+        },
+        args: {
+          to: walletAddress as `0x${string}`,
+        },
+        fromBlock,
+        toBlock: currentBlock,
+      });
+
+      // Combine and deduplicate events (same transaction hash)
+      const allEvents = [...sentEvents, ...receivedEvents];
+      const uniqueEvents = Array.from(new Map(allEvents.map((e: any) => [e.transactionHash, e])).values());
+
+      console.log(`📊 Found ${uniqueEvents.length} transfer events`);
+
+      // Get block timestamps for all unique blocks
+      const uniqueBlockNumbers = [...new Set(uniqueEvents.map((e: any) => e.blockNumber))];
+      const blockTimestamps: Record<string, number> = {};
+
+      await Promise.all(
+        uniqueBlockNumbers.map(async (blockNumber: bigint) => {
+          try {
+            const block = await publicClient.getBlock({ blockNumber });
+            blockTimestamps[blockNumber.toString()] = Number(block.timestamp);
+          } catch (error) {
+            console.warn(`Failed to get timestamp for block ${blockNumber}:`, error);
+            blockTimestamps[blockNumber.toString()] = Number(blockNumber) * 12;
+          }
+        }),
+      );
+
+      const transfers: TransferRecord[] = uniqueEvents.map((event: any, index: number) => {
+        const args = event.args as any;
+        const blockNumberStr = event.blockNumber?.toString() || "";
+        const timestamp =
+          blockTimestamps[blockNumberStr] || (event.blockNumber ? Number(event.blockNumber) * 12 : Date.now() / 1000);
+
+        const fromAddress = typeof args.from === "string" ? args.from : args.from?.toString() || "";
+        const toAddress = typeof args.to === "string" ? args.to : args.to?.toString() || "";
+        const amount = typeof args.amount === "bigint" ? args.amount : BigInt(args.amount || 0);
+
+        // Determine if this is a sent or received transfer
+        const isSent = fromAddress.toLowerCase() === walletAddress?.toLowerCase();
+        const type: "SENT" | "RECEIVED" = isSent ? "SENT" : "RECEIVED";
+
+        return {
+          id: event.transactionHash || `transfer-${index}`,
+          timestamp: Math.floor(timestamp),
+          from: fromAddress,
+          to: toAddress,
+          amount,
+          type,
+        };
+      });
+
+      const sortedTransfers = transfers.sort((a, b) => b.timestamp - a.timestamp);
+      setTransferHistory(sortedTransfers);
+      console.log(`✅ Loaded ${sortedTransfers.length} transfers into history`);
+    } catch (error) {
+      console.error("❌ Failed to load transfer history:", error);
+      setTransferHistory([]);
+    }
+  }, [walletAddress, contractAddress, publicClient]);
+
   // Auto-load swap history when dependencies change
   useEffect(() => {
     loadSwapHistory();
   }, [loadSwapHistory]);
+
+  // Auto-load transfer history when dependencies change
+  useEffect(() => {
+    loadTransferHistory();
+  }, [loadTransferHistory]);
 
   // Note: makeBalancePublic removed as function doesn't exist in current ABI
 
@@ -477,7 +602,7 @@ export function useEncryptedDiceGame() {
           abi: EncryptedDiceGameABI,
           functionName: "transferROLL",
           args: [
-            recipientAddress,
+            recipientAddress as `0x${string}`,
             rollAmount,
             toHexString(encryptedAmount.encryptedData),
             toHexString(encryptedAmount.proof),
@@ -497,12 +622,12 @@ export function useEncryptedDiceGame() {
     [contractAddress, walletAddress, walletClient, writeContractAsync, isInitialized, encrypt],
   );
 
-  // Refresh data (balance + swap history)
+  // Refresh data (balance + swap history + transfer history)
   const refresh = useCallback(async () => {
-    console.log("🔄 Refreshing balance and swap history...");
-    await Promise.all([refetchBalance(), loadSwapHistory()]);
+    console.log("🔄 Refreshing balance, swap history, and transfer history...");
+    await Promise.all([refetchBalance(), loadSwapHistory(), loadTransferHistory()]);
     console.log("✅ Refresh complete");
-  }, [refetchBalance, loadSwapHistory]);
+  }, [refetchBalance, loadSwapHistory, loadTransferHistory]);
 
   // Auto-refresh on transaction completion
   useEffect(() => {
@@ -528,6 +653,9 @@ export function useEncryptedDiceGame() {
 
     // Swap history data
     swapHistory,
+
+    // Transfer history data
+    transferHistory,
 
     // Balance data
     encryptedBalance,

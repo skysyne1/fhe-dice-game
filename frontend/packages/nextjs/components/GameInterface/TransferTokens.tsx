@@ -4,10 +4,10 @@ import { LoadingOverlay } from "../LoadingOverlay";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
-import { Send, Coins } from "lucide-react";
+import { ethers } from "ethers";
+import { Coins, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useAccount } from "wagmi";
-import { ethers } from "ethers";
 
 interface TransferTokensProps {
   balance: number;
@@ -26,7 +26,6 @@ interface TransferTokensProps {
 export function TransferTokens({
   balance,
   isContractReady,
-  isContractLoading,
   contractError,
   isTransactionPending = false,
   isTransactionLoading = false,
@@ -138,12 +137,9 @@ export function TransferTokens({
 
     try {
       await onTransferROLL(recipientAddress, amount);
-      toast.success(
-        `Transferred ${amount} ROLL to ${recipientAddress.slice(0, 6)}...${recipientAddress.slice(-4)}`,
-        {
-          description: "Transaction confirmed on blockchain",
-        },
-      );
+      toast.success(`Transferred ${amount} ROLL to ${recipientAddress.slice(0, 6)}...${recipientAddress.slice(-4)}`, {
+        description: "Transaction confirmed on blockchain",
+      });
 
       // Refresh balance
       await onRefresh();
@@ -153,11 +149,7 @@ export function TransferTokens({
       console.error("Transfer error:", error);
 
       // Check if user rejected the transaction
-      if (
-        error?.code === 4001 ||
-        error?.message?.includes("User denied") ||
-        error?.message?.includes("rejected")
-      ) {
+      if (error?.code === 4001 || error?.message?.includes("User denied") || error?.message?.includes("rejected")) {
         toast.error("Transaction cancelled", {
           description: "You cancelled the transaction in MetaMask",
         });
@@ -173,14 +165,8 @@ export function TransferTokens({
   };
 
   return (
-    <div className="flex-[2]">
+    <div className="flex-1">
       <Card className="bg-gradient-to-br from-[#2a2a2a]/60 to-[#1a1a1a]/40 backdrop-blur-sm border-2 border-[#fde047]/30 p-6 shadow-2xl shadow-[#fde047]/10 lg:sticky lg:top-24">
-        <LoadingOverlay
-          message="Transferring Tokens..."
-          description="Waiting for transaction confirmation..."
-          show={showLoadingOverlay}
-        />
-
         <div className="space-y-6">
           <div className="flex items-center gap-2 mb-4">
             <Send className="h-5 w-5 text-[#fde047] drop-shadow-[0_0_6px_rgba(253,224,71,0.4)]" />
@@ -260,18 +246,34 @@ export function TransferTokens({
             onClick={handleTransfer}
             disabled={
               isTransferring ||
+              isTransactionPending ||
+              isTransactionLoading ||
               !isContractReady ||
               !isDecryptReady ||
               !recipientAddress ||
               !transferAmount
             }
-            className="w-full h-12 bg-[#fde047] text-[#1a1a1a] hover:bg-[#fde047]/90 font-semibold text-base"
+            className="w-full h-12 bg-gradient-to-r from-[#fde047] via-[#fbbf24] to-[#f59e0b] text-black hover:scale-105 transition-transform disabled:opacity-50 disabled:scale-100 shadow-lg shadow-[#fde047]/30 font-semibold text-base"
           >
-            {isTransferring ? "Transferring..." : "Transfer ROLL"}
+            {isTransactionPending
+              ? "Confirm in MetaMask..."
+              : isTransactionLoading
+                ? "Processing..."
+                : isTransferring
+                  ? "Transferring..."
+                  : "Transfer ROLL"}
           </Button>
         </div>
       </Card>
+
+      {/* Loading Overlay */}
+      {showLoadingOverlay && (
+        <LoadingOverlay
+          message="Transaction submitted successfully!"
+          description="Waiting for blockchain confirmation. This may take a few seconds..."
+          showDice={false}
+        />
+      )}
     </div>
   );
 }
-

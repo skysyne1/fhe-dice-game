@@ -182,9 +182,12 @@ const updateEncryptedDiceGameAddresses = async (
 ) => {
   const addresses: Record<string, string> = {};
 
-  // Extract EncryptedDiceGame addresses from all chains
+  // Extract contract addresses from all chains
+  // Priority: FHETokenSwap (new) > EncryptedDiceGame (old, for backward compatibility)
   Object.entries(allContractsData).forEach(([chainId, contracts]) => {
-    if (contracts.EncryptedDiceGame) {
+    if (contracts.FHETokenSwap) {
+      addresses[chainId] = contracts.FHETokenSwap.address;
+    } else if (contracts.EncryptedDiceGame) {
       addresses[chainId] = contracts.EncryptedDiceGame.address;
     }
   });
@@ -228,9 +231,12 @@ const updateAbiEncryptedDiceGameAddresses = async (
 ) => {
   const addresses: Record<string, string> = {};
 
-  // Extract EncryptedDiceGame addresses from all chains
+  // Extract contract addresses from all chains
+  // Priority: FHETokenSwap (new) > EncryptedDiceGame (old, for backward compatibility)
   Object.entries(allContractsData).forEach(([chainId, contracts]) => {
-    if (contracts.EncryptedDiceGame) {
+    if (contracts.FHETokenSwap) {
+      addresses[chainId] = contracts.FHETokenSwap.address;
+    } else if (contracts.EncryptedDiceGame) {
       addresses[chainId] = contracts.EncryptedDiceGame.address;
     }
   });

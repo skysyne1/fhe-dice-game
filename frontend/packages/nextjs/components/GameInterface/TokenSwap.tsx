@@ -195,7 +195,7 @@ export function TokenSwap({
   };
 
   return (
-    <div className="flex-[3]">
+    <div className="flex-1">
       <Card className="bg-gradient-to-br from-[#2a2a2a]/60 to-[#1a1a1a]/40 backdrop-blur-sm border-2 border-[#fde047]/30 p-6 shadow-2xl shadow-[#fde047]/10 lg:sticky lg:top-24">
         <div className="space-y-6">
           <div className="flex items-center gap-2 mb-4">

@@ -5,24 +5,88 @@
 import { GenericContractsDeclaration } from "~~/utils/helper/contract";
 
 const deployedContracts = {
-  11155111: {
-    EncryptedDiceGame: {
-      address: "0x319B38474f5d565655e70B268F06832006541bB2",
+  31337: {
+    FHECounter: {
+      address: "0x5543313646c276654a86b0A70Bff59F34a2834e1",
+      abi: [
+        {
+          inputs: [],
+          name: "ZamaProtocolUnsupported",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "confidentialProtocolId",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "externalEuint32",
+              name: "inputEuint32",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes",
+              name: "inputProof",
+              type: "bytes",
+            },
+          ],
+          name: "decrement",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getCount",
+          outputs: [
+            {
+              internalType: "euint32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "externalEuint32",
+              name: "inputEuint32",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes",
+              name: "inputProof",
+              type: "bytes",
+            },
+          ],
+          name: "increment",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 4,
+    },
+    FHETokenSwap: {
+      address: "0xb87016578Ad00e7bAAF1d9D99296df7d215A62b2",
       abi: [
         {
           inputs: [],
           stateMutability: "nonpayable",
           type: "constructor",
-        },
-        {
-          inputs: [],
-          name: "GameAlreadyResolved",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "InvalidStakeAmount",
-          type: "error",
         },
         {
           inputs: [],
@@ -32,11 +96,6 @@ const deployedContracts = {
         {
           inputs: [],
           name: "NoETHSent",
-          type: "error",
-        },
-        {
-          inputs: [],
-          name: "OnlyGamePlayer",
           type: "error",
         },
         {
@@ -54,25 +113,336 @@ const deployedContracts = {
           inputs: [
             {
               indexed: true,
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+            {
+              indexed: false,
               internalType: "uint256",
-              name: "gameId",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "TokensMinted",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "user",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "ethAmount",
               type: "uint256",
             },
             {
               indexed: false,
-              internalType: "uint32",
-              name: "diceValue",
-              type: "uint32",
+              internalType: "uint256",
+              name: "rollAmount",
+              type: "uint256",
             },
             {
               indexed: false,
-              internalType: "uint8",
-              name: "diceParity",
-              type: "uint8",
+              internalType: "bool",
+              name: "ethToRoll",
+              type: "bool",
             },
           ],
-          name: "DiceRolled",
+          name: "TokensSwapped",
           type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "from",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "to",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "TokensTransferred",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "funder",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "TreasuryFunded",
+          type: "event",
+        },
+        {
+          stateMutability: "payable",
+          type: "fallback",
+        },
+        {
+          inputs: [],
+          name: "MAX_MINT",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "ROLL_TOKEN_RATE",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "addTreasuryETH",
+          outputs: [],
+          stateMutability: "payable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "confidentialProtocolId",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+          ],
+          name: "getBalance",
+          outputs: [
+            {
+              internalType: "euint32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "getContractETHBalance",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+          ],
+          name: "getPlayerBalance",
+          outputs: [
+            {
+              internalType: "euint32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "player",
+              type: "address",
+            },
+          ],
+          name: "makeBalancePubliclyDecryptable",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "mintTokens",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "owner",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          name: "playerBalance",
+          outputs: [
+            {
+              internalType: "euint32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "swapETHForROLL",
+          outputs: [],
+          stateMutability: "payable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint32",
+              name: "rollAmount",
+              type: "uint32",
+            },
+            {
+              internalType: "externalEuint32",
+              name: "encryptedAmount",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes",
+              name: "amountProof",
+              type: "bytes",
+            },
+          ],
+          name: "swapROLLForETH",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_to",
+              type: "address",
+            },
+            {
+              internalType: "uint32",
+              name: "_amount",
+              type: "uint32",
+            },
+            {
+              internalType: "externalEuint32",
+              name: "_encryptedAmount",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes",
+              name: "_amountProof",
+              type: "bytes",
+            },
+          ],
+          name: "transferROLL",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "withdrawETH",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          stateMutability: "payable",
+          type: "receive",
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 3,
+    },
+  },
+  11155111: {
+    EncryptedDiceGame: {
+      address: "0x9E102fA29066c702E6ad84ED81a51d7d5a3fc25c",
+      abi: [
+        {
+          inputs: [],
+          stateMutability: "nonpayable",
+          type: "constructor",
         },
         {
           anonymous: false,
@@ -113,6 +483,12 @@ const deployedContracts = {
               internalType: "address",
               name: "player",
               type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint8",
+              name: "diceCount",
+              type: "uint8",
             },
             {
               indexed: false,
@@ -172,25 +548,6 @@ const deployedContracts = {
             },
           ],
           name: "TokensSwapped",
-          type: "event",
-        },
-        {
-          anonymous: false,
-          inputs: [
-            {
-              indexed: true,
-              internalType: "address",
-              name: "funder",
-              type: "address",
-            },
-            {
-              indexed: false,
-              internalType: "uint256",
-              name: "amount",
-              type: "uint256",
-            },
-          ],
-          name: "TreasuryFunded",
           type: "event",
         },
         {
@@ -277,26 +634,6 @@ const deployedContracts = {
         },
         {
           inputs: [],
-          name: "addTreasuryETH",
-          outputs: [],
-          stateMutability: "payable",
-          type: "function",
-        },
-        {
-          inputs: [],
-          name: "confidentialProtocolId",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [],
           name: "gameCounter",
           outputs: [
             {
@@ -322,6 +659,11 @@ const deployedContracts = {
               internalType: "address",
               name: "player",
               type: "address",
+            },
+            {
+              internalType: "uint8",
+              name: "diceCount",
+              type: "uint8",
             },
             {
               internalType: "euint8",
@@ -367,19 +709,6 @@ const deployedContracts = {
           type: "function",
         },
         {
-          inputs: [],
-          name: "getContractETHBalance",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
           inputs: [
             {
               internalType: "uint256",
@@ -393,6 +722,11 @@ const deployedContracts = {
               internalType: "address",
               name: "player",
               type: "address",
+            },
+            {
+              internalType: "uint8",
+              name: "diceCount",
+              type: "uint8",
             },
             {
               internalType: "uint256",
@@ -411,15 +745,34 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "address",
-              name: "player",
-              type: "address",
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
             },
           ],
-          name: "getPlayerBalance",
+          name: "getGameDiceValues",
           outputs: [
             {
-              internalType: "euint32",
+              internalType: "euint32[]",
+              name: "",
+              type: "bytes32[]",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
+            },
+          ],
+          name: "getGamePrediction",
+          outputs: [
+            {
+              internalType: "euint8",
               name: "",
               type: "bytes32",
             },
@@ -430,14 +783,20 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "address",
-              name: "player",
-              type: "address",
+              internalType: "uint256",
+              name: "gameId",
+              type: "uint256",
             },
           ],
-          name: "makeBalancePubliclyDecryptable",
-          outputs: [],
-          stateMutability: "nonpayable",
+          name: "getGameStake",
+          outputs: [
+            {
+              internalType: "euint32",
+              name: "",
+              type: "bytes32",
+            },
+          ],
+          stateMutability: "view",
           type: "function",
         },
         {
@@ -486,6 +845,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [],
+          name: "protocolId",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "pure",
+          type: "function",
+        },
+        {
           inputs: [
             {
               internalType: "uint256",
@@ -501,28 +873,10 @@ const deployedContracts = {
         {
           inputs: [
             {
-              internalType: "externalEuint8",
-              name: "encryptedPrediction",
-              type: "bytes32",
+              internalType: "uint8",
+              name: "diceCount",
+              type: "uint8",
             },
-            {
-              internalType: "bytes",
-              name: "predictionProof",
-              type: "bytes",
-            },
-            {
-              internalType: "uint32",
-              name: "stakeAmount",
-              type: "uint32",
-            },
-          ],
-          name: "rollDice",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
             {
               internalType: "externalEuint8",
               name: "encryptedPrediction",
@@ -534,9 +888,14 @@ const deployedContracts = {
               type: "bytes",
             },
             {
-              internalType: "uint32",
-              name: "stakeAmount",
-              type: "uint32",
+              internalType: "externalEuint32",
+              name: "encryptedStake",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes",
+              name: "stakeProof",
+              type: "bytes",
             },
           ],
           name: "startGame",
@@ -553,11 +912,6 @@ const deployedContracts = {
         },
         {
           inputs: [
-            {
-              internalType: "uint32",
-              name: "rollAmount",
-              type: "uint32",
-            },
             {
               internalType: "externalEuint32",
               name: "encryptedAmount",
@@ -587,10 +941,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 9737115,
+      deployedOnBlock: 9736106,
     },
     FHECounter: {
-      address: "0x384ec68BfCD804FcDa4ad25fB16e08bA3801d85e",
+      address: "0xB6fae67ec6B75534F1B5D1c5893AbA056bBaDE29",
       abi: [
         {
           inputs: [],
@@ -661,10 +1015,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 9730516,
+      deployedOnBlock: 9743460,
     },
     FHETokenSwap: {
-      address: "0x6745B4524E1E784033b400056d00f2645FD1aC03",
+      address: "0xe3De829908d1afA66bC6b116C77bC832a351Cb88",
       abi: [
         {
           inputs: [],
@@ -739,6 +1093,31 @@ const deployedContracts = {
             },
           ],
           name: "TokensSwapped",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "from",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "to",
+              type: "address",
+            },
+            {
+              indexed: false,
+              internalType: "uint256",
+              name: "amount",
+              type: "uint256",
+            },
+          ],
+          name: "TokensTransferred",
           type: "event",
         },
         {
@@ -950,6 +1329,34 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_to",
+              type: "address",
+            },
+            {
+              internalType: "uint32",
+              name: "_amount",
+              type: "uint32",
+            },
+            {
+              internalType: "externalEuint32",
+              name: "_encryptedAmount",
+              type: "bytes32",
+            },
+            {
+              internalType: "bytes",
+              name: "_amountProof",
+              type: "bytes",
+            },
+          ],
+          name: "transferROLL",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "withdrawETH",
           outputs: [],
@@ -962,7 +1369,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 9737632,
+      deployedOnBlock: 9743459,
     },
   },
 } as const;
